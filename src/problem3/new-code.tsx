@@ -4,10 +4,7 @@ interface WalletBalance {
   blockchain: string;
 }
 
-interface FormattedWalletBalance {
-  currency: string;
-  amount: number;
-  blockchain: string;
+interface FormattedWalletBalance extends WalletBalance {
   formatted: string;
 }
 
@@ -27,31 +24,39 @@ const getPriority = (blockchain: string): number => {
   return BLOCKCHAIN_PRIORITIES[blockchain] ?? NO_PRIORITY;
 };
 
+const filterAndSortBalances = (balances: WalletBalance[]): WalletBalance[] => {
+  return balances
+    .filter((balance: WalletBalance) => {
+      const balancePriority = getPriority(balance.blockchain);
+      return balancePriority > NO_PRIORITY && balance.amount > 0;
+    })
+    .sort((lhs: WalletBalance, rhs: WalletBalance) => {
+      const leftPriority = getPriority(lhs.blockchain);
+      const rightPriority = getPriority(rhs.blockchain);
+      return rightPriority - leftPriority;
+    });
+};
+
+const formatBalances = (balances: WalletBalance[]): FormattedWalletBalance[] => {
+  return balances.map((balance: WalletBalance): FormattedWalletBalance => {
+    return {
+      ...balance,
+      formatted: balance.amount.toFixed(),
+    };
+  });
+};
+
 const WalletPage: React.FC<Props> = (props: Props) => {
   const { children, ...rest } = props;
   const balances = useWalletBalances();
   const prices = usePrices();
 
   const sortedBalances = useMemo(() => {
-    return balances
-      .filter((balance: WalletBalance) => {
-        const balancePriority = getPriority(balance.blockchain);
-        return balancePriority > NO_PRIORITY && balance.amount > 0;
-      })
-      .sort((lhs: WalletBalance, rhs: WalletBalance) => {
-        const leftPriority = getPriority(lhs.blockchain);
-        const rightPriority = getPriority(rhs.blockchain);
-        return rightPriority - leftPriority;
-      });
+    return filterAndSortBalances(balances);
   }, [balances]);
 
   const formattedBalances = useMemo(() => {
-    return sortedBalances.map((balance: WalletBalance): FormattedWalletBalance => {
-      return {
-        ...balance,
-        formatted: balance.amount.toFixed(),
-      };
-    });
+    return formatBalances(sortedBalances);
   }, [sortedBalances]);
 
   const rows = useMemo(() => {
@@ -60,6 +65,7 @@ const WalletPage: React.FC<Props> = (props: Props) => {
 
       return (
         <WalletRow
+          className={classes.row}
           key={`${balance.blockchain}-${balance.currency}`}
           amount={balance.amount}
           usdValue={usdValue}

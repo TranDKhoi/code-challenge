@@ -1,85 +1,66 @@
-# Problem 3 Explanation
+# Problem 3 - Explain
 
-1. **`WalletBalance` is missing `blockchain`**
+Instead point out each issue in the code, I will refactor it based on five pillars: Type Safety, Performance, Readability, Maintainability, and Testability.
 
-   The code uses `balance.blockchain`, but the interface only defines `currency` and `amount`.
+---
 
-2. **`getPriority` uses `any`**
+## 1. Type Safety
 
-   `blockchain: any` removes the benefit of TypeScript. `string` is already better here, or a union type if the blockchain list is fixed.
+- **Missing interface property**: `balance.blockchain` is used but this property is missing from the `WalletBalance`.
+- **Use of `any` types**: The `blockchain` parameter in the `getPriority` function was typed as `any`, it should be atleast string instead.
+- **Mismatch in row mapper type**: The `rows` mapping callback typed the items as `FormattedWalletBalance` but iterated over `WalletBalance`.
+- **Unsafe index access**: Access `prices[balance.currency]` could be `undefined`
+### Fixes:
+- Added `blockchain` to the `WalletBalance` interface and typed `blockchain` as a `string`.
+- Rendered rows using `formattedBalances` instead of `sortedBalances`.
+- Guarded price lookups with a fallback: `prices[balance.currency] ?? 0`.
 
-3. **`getPriority` is defined inside the component**
+---
 
-   It does not use props or state, so it does not need to be recreated on every render. Move it outside the component.
+## 2. Performance
 
-4. **Priority fallback is a magic number**
+- **Unnecessary dependencies**: `prices` is listed in the dependency array for `sortedBalances` `useMemo`, while the callback is not using it. This will cause unnecessary re-render when `prices` change
+- **Dead code**: `formattedBalances` is calculated but never used. This is a bug.
+- **Unmemoized row rendering**: The row components are mapped on every render.
 
-   `-99` appears as a special value. A named constant like `NO_PRIORITY` makes the intent clearer.
+### Fixes:
+- Removed `prices` from the `sortedBalances` dependency array.
+- Used the calculated `formattedBalances` to render rows.
+- Wrapped the row mapper inside `useMemo` so that row calculations only run when `formattedBalances` or `prices` change.
 
-5. **The filter uses an undefined variable**
+---
 
-   This line is wrong:
+## 3. Readability & Clean Code
 
-   ```tsx
-   if (lhsPriority > -99) {
-   ```
+- **Wrong filter logic**: The filter block use nested `if` and referenced an undefined variable `lhsPriority`.
+- **Incomplete sort comparator**: The sort comparator only handled `>` and `<`, missing `==` case.
+- **Using array index as key**: The loop index is used as the React key. Since the list is filtered and sorted dynamically, this could cause UI bug.
 
-   `lhsPriority` does not exist. It should be `balancePriority`.
+### Fixes:
+- Simplify the filter statement.
+- Use a subtraction statement (`rightPriority - leftPriority`) to resolve sorting.
+- Replaced the array index with a stable combination key: `${balance.blockchain}-${balance.currency}`.
 
-6. **The filter keeps the wrong balances**
+---
 
-   The code returns `true` when `balance.amount <= 0`, so it keeps zero or negative balances. The expected logic should be the opposite:
+## 4. Maintainability
 
-   ```tsx
-   return balancePriority > NO_PRIORITY && balance.amount > 0;
-   ```
+- **Helper method inside component**: `getPriority` is defined inside the component scope, it would be unnecessary re-instantiated on re-render.
+- **Hard-coded switch statement**: If new type of blockchain need to be added, we have to modifying the logic inside the switch statement.
+- **Redundant interface duplication**: `FormattedWalletBalance` copy-pasted all properties from `WalletBalance` instead of reusing it.
 
-7. **The filter is more complicated than needed**
+### Fixes:
+- Moved `getPriority` outside the component scope.
+- Replaced the switch-case with a configuration lookup object (`BLOCKCHAIN_PRIORITIES`).
+- Changed `Props` to extend `React.HTMLAttributes<HTMLDivElement>`.
+- Refactored `FormattedWalletBalance` to extend `WalletBalance`.
 
-   The nested `if` blocks can be replaced by one boolean return. This is easier to read and less error-prone.
+---
 
-8. **The sort comparator is incomplete**
+## 5. Testability
 
-   If both priorities are equal, the comparator returns `undefined`. It should return `0`, or use:
+- **Coupled data manipulation**: The logic for filtering, sorting, and formatting balances is put inside the component scope. Testing these method required rendering or mounting the full component and mock hook context, complicating unit testing.
 
-   ```tsx
-   return rightPriority - leftPriority;
-   ```
+### Fixes:
+- Extracted those logics into top-level function.
 
-9. **`prices` is an unnecessary dependency of `sortedBalances`**
-
-   `sortedBalances` only uses `balances`. Including `prices` means every price update will re-run filter and sort for no reason.
-
-10. **`formattedBalances` is computed but not used**
-
-    The code creates `formattedBalances`, then renders from `sortedBalances`. Because of that, `formatted` is never actually used.
-
-11. **Wrong type in the `rows` map**
-
-    `sortedBalances` contains `WalletBalance`, but the callback says each item is `FormattedWalletBalance`. That hides the real bug: `balance.formatted` does not exist on `sortedBalances`.
-
-12. **Using array index as React key**
-
-    The list is filtered and sorted, so indexes can change. A stable key from the data is safer.
-
-## Smaller notes
-
-- `prices[balance.currency]` can be `undefined`, which would make `usdValue` become `NaN`.
-- `children` is destructured but not rendered.
-- `classes.row` is used, but `classes` is not defined in the snippet.
-- `Props extends BoxProps`, but the component returns a plain `div`. Either use the matching `Box` component or change the prop type.
-
-## Refactor
-
-The refactor keeps the same structure but fixes the main problems:
-
-1. Add `blockchain` to `WalletBalance`.
-2. Type `getPriority` properly and move it outside the component.
-3. Use a named `NO_PRIORITY` constant.
-4. Fix the filter condition.
-5. Fix the sort comparator.
-6. Remove `prices` from the `sortedBalances` dependency list.
-7. Use `formattedBalances` when rendering rows.
-8. Use a stable key instead of array index.
-9. Guard missing prices with a fallback.
-10. Make the prop type match the rendered `div`.
