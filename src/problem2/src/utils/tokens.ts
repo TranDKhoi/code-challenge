@@ -1,4 +1,4 @@
-import type { PriceRecord, Token } from '../types/swap';
+import type { PriceRecord, Token } from '../types/token';
 
 export const PRICES_URL = 'https://interview.switcheo.com/prices.json';
 export const TOKEN_ICON_BASE_URL =

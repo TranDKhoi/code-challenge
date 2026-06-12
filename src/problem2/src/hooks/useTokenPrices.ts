@@ -4,7 +4,7 @@ import {
   assertPriceRecords,
   createTokensFromPrices,
 } from '../utils/tokens';
-import type { Token } from '../types/swap';
+import type { Token } from '../types/token';
 
 export function useTokenPrices() {
   const [tokens, setTokens] = useState<Token[]>([]);

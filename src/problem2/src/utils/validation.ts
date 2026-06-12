@@ -1,5 +1,5 @@
 import { parseAmount } from './format';
-import type { Token } from '../types/swap';
+import type { Token } from '../types/token';
 
 type ValidateSwapInput = {
   fromToken: Token | null;

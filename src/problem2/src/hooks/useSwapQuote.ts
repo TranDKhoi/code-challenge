@@ -3,7 +3,8 @@ import {
   formatInputAmount,
   parseAmount,
 } from '../utils/format';
-import type { SwapSide, Token } from '../types/swap';
+import type { SwapSide } from '../types/swap';
+import type { Token } from '../types/token';
 
 type UseSwapQuoteInput = {
   fromToken: Token | null;

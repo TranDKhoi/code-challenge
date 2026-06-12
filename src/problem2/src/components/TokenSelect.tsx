@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Check, ChevronDown, Search } from 'lucide-react';
 import { formatUsd } from '../utils/format';
-import type { Token } from '../types/swap';
+import type { Token } from '../types/token';
 
 type TokenSelectProps = {
   tokens: Token[];

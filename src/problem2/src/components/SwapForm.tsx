@@ -11,8 +11,8 @@ import { useSwapQuote } from '../hooks/useSwapQuote';
 import type {
   NewSwapHistoryItem,
   SwapSide,
-  Token,
 } from '../types/swap';
+import type { Token } from '../types/token';
 import { StatusMessage } from './StatusMessage';
 import { TokenAmountInput } from './TokenAmountInput';
 
